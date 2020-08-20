@@ -1,4 +1,4 @@
-#  Distributed Matrix Multiplication for high-common dimension
+#  Distributed MatMul for high-common dimension
 
 The current distributed block MM algorithms such as Cannon's (https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and Summa (http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for a certain class of matrices where common "N" dimension is very large.
 
@@ -14,7 +14,7 @@ There are two key ideas in the algorithm:
    
    
 
-# Complexity Analysis of Algorithm
+## Complexity Analysis of Algorithm
 
 The  complexity of this algorithm is virtually the same as any other block-MM except the reduction part. Consider, LHS is W (dimensions MxN). RHS is X (dimensions NxP). 
 Output is Y (dimensions MxP).
