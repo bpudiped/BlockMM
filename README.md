@@ -1,5 +1,5 @@
 
-# Distributed MatMul for high-common dimension
+# New distributed MatMul algorithm
 
 Initial check-in.
 
@@ -7,7 +7,7 @@ Initial check-in.
 
 The current distributed block MM algorithms such as Cannon's (https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and Summa (http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for a certain class of matrices where common "N" dimension is very large.
 
-I developed this algorithm (called mosaic) which is targeted for both square and rectangular matrices, and the blocks too are square or rectangular (leading to a lot of possible scenarios for the optimizer).
+This algorithm (called mosaic) was developed for both square and rectangular matrices, and the blocks too are square or rectangular (leading to a lot of possible scenarios for the optimizer).
 
 There are two key ideas in the algorithm:
 
@@ -30,15 +30,15 @@ The operation is: Y = W dot X
 Consider a number of processors with combined GFLOPs of "F" when running in parallel.
 Consider bandwidth between any two processors is fixed at B (GB/sec).
 
-For the impractical case of block size 1x1 and with infinite memory, 
+For the impractical case of block size 1x1 and with infinite memory (assuming FP32).
 
-Time is approximated as O(M*P*(2*N-1)/F + 1*1*logN/B) nSec (or mSec if M/P/N are in millions).
+Time is approximated as O(M x P x (2N-1)/F + 4 x 1 x 1 x logN/B) nSec (or mSec if M/P/N are in millions).
 So, there are no "exchanges" happening as memory is limitless. The only movement is for summation of all results in the N-dimension.
 
 Let the LHS block be m x n, and RHS block be n x p.
 
-The total time = O(M*P*2*(N-1)/F  + m*p*log(N/n)/ B + xc*n*p/B)
-Here "xc" refers to the exchanges required in case the memory is not enough to fit all of RHS matrix X. We split the RHS into groups of "Xc" columns. 
+The total time = O(M x P x 2(N-1)/F  + 4 x m x p x log(N/n)/ B + 4 x Xc x n x P/B)
+Here "Xc" refers to the exchanges required in case the memory is not enough to fit all of RHS matrix X. We split the RHS into groups of "Xc" columns. 
 Each Xc processors working on contiguous columns only have separate copies of Xc. After every reduction, a circular exchange between the Xc processsors produces the next result. 
 
 ### Algorithm
