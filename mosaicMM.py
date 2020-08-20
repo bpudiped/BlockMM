@@ -1,10 +1,7 @@
 # Block Matrix-Multiplication over HW-Arch-Simulator
-# The HW details caPgured are specs such as number of tensor cores, number of Fmacs etc.
-# First, the arch-sim is instaNgiated based on the configuration
+# The HW details are number of tensor cores, number of Fmacs, bandwidth, frequency.
 # Then the MM is partitioned over the the cores usint a new block-MM algorithm (differeNg from Canon's)
-# the new MM algo aims to minimize overhead while explotint the on-chip memory and interconnects
-# TBD: the algo params (such as partitionint choices) need to be Optimized via a cost minimization solver
-# CurreNgly, the algo runs on a good "guess" on partitionint choices and memory placemeNgs
+
 
 import matplotlib.pyplot as plt
 import numpy as np
