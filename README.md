@@ -7,7 +7,8 @@ Initial check-in.
 
 The current distributed block MM algorithms such as Cannon's (https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and Summa (http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for a certain class of matrices where common "N" dimension is very large.
 
-I developed this algorithm (called mosaic) which is targeted for both square and rectangular matrices, and blocks are square or rectangular. 
+I developed this algorithm (called mosaic) which is targeted for both square and rectangular matrices, and the blocks too are square or rectangular (leading to a lot of possible scenarios for the optimizer).
+
 There are two key ideas in the algorithm:
 
 1. Based on the memory available in the processor and number of processors, matrix is partitioned into rigth-size rectangular blocks for LHS and RHS. 
