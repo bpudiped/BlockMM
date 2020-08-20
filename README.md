@@ -42,7 +42,7 @@ So each processor has infinite memory and gets an mxn block (from matrix W) and 
 There is infinite memory, so blocks are big enough for no exchanges and small enough to occupy all processors.
 All processors compute their results in the first step. The second step is the reduction across the N-dimension.
 
-![Reduction by Recursive Halving](mosaicMM1.jpg)
+![Reduction by Recursive Halving](mosaicMM1.png)
 
 In the second figure, there isn't enough memory to split the matrix to produce all the results in one compute iteration.
 The second matrix is split up into "exchange groups." A processor group holds contiguous columns of an exchange group. 
@@ -50,7 +50,7 @@ After every compute/reduction iteration, a circular exchange ensues between the 
 After "Xc" number of exchanges, the MM operation is done. The value of Xc is chosen by the optimizer as part of maximizing
 compute and fitting memory constraints solver. 
 
-![Exchange of Matrix X-blocks](mosaicMM1.jpg)
+![Exchange of Matrix X-blocks](mosaicMM1.png)
 
 The current algorithm does not work on some irregular sized matrices covered by assertions. That issue will be fixed without
 any performance impact (the "residual group" problem).
