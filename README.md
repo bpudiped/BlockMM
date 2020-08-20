@@ -40,7 +40,7 @@ The total time = O(M*P*2*(N-1)/F  + m*p*log(N/n)/ B + xc*n*p/B)
 Here "xc" refers to the exchanges required in case the memory is not enough to fit all of RHS matrix X. We split the RHS into groups of "Xc" columns. 
 Each Xc processors working on contiguous columns only have separate copies of Xc. After every reduction, a circular exchange between the Xc processsors produces the next result. 
 
-### Algorithm:
+### Algorithm
 
 The main ideas are described in the two figures. The first figure shows the arrangement of the data. 
 So each processor has infinite memory and gets an mxn block (from matrix W) and an nxp block (from matrix X). 
@@ -60,7 +60,7 @@ compute and fitting memory constraints solver.
 The current algorithm does not work on some irregular sized matrices covered by assertions. That issue will be fixed without
 any performance impact (the "residual group" problem).
 
-### Optimizer:
+### Optimizer
 
 The optimizer that determines the partitioning, the block sizing (m, n, p), and the number of exchanges (Xc) is not perfect here. 
 For instance, for 2048x2048 square MM, it only engages 512 processors out of 800 possible processors. 
