@@ -1,7 +1,6 @@
 # Block Matrix-Multiplication over HW-Arch-Simulator
-# The HW details are number of tensor cores, number of Fmacs, bandwidth, frequency.
-# Then the MM is partitioned over the the cores usint a new block-MM algorithm (differeNg from Canon's)
-
+# The HW details are number of processors (or tiles or tensor cores), number of Fmacs, bandwidth, frequency.
+# Then the MM is partitioned over the the processors using a new algorithm (check README.md)
 
 import matplotlib.pyplot as plt
 import numpy as np
