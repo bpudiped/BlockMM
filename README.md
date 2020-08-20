@@ -1,5 +1,5 @@
 
-# New distributed MatMul algorithm
+# new distributed MatMul algorithm
 
 Initial check-in.
 
@@ -22,7 +22,7 @@ There are two key ideas in the algorithm:
 
 ### Complexity Analysis of Algorithm
 
-The  complexity of this algorithm is virtually the same as any other block-MM except the reduction part. Consider, LHS is W (dimensions MxN). RHS is X (dimensions NxP). 
+The  complexity of this algorithm is virtually the same as any other block-MM except the reduction part. Consider, LHS is W (dimensions M x N). RHS is X (dimensions N x P). 
 Output is Y (dimensions MxP).
 
 The operation is: Y = W dot X  
