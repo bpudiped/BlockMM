@@ -1,4 +1,4 @@
-#  Distributed MatMul for high-common dimension
+##  Distributed MatMul for high-common dimension
 
 The current distributed block MM algorithms such as Cannon's (https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and Summa (http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for a certain class of matrices where common "N" dimension is very large.
 
@@ -14,7 +14,7 @@ There are two key ideas in the algorithm:
    
    
 
-## Complexity Analysis of Algorithm
+### Complexity Analysis of Algorithm
 
 The  complexity of this algorithm is virtually the same as any other block-MM except the reduction part. Consider, LHS is W (dimensions MxN). RHS is X (dimensions NxP). 
 Output is Y (dimensions MxP).
@@ -35,7 +35,7 @@ The total time = O(M*P*2*(N-1)/F  + m*p*log(N/n)/ B + xc*n*p/B)
 Here "xc" refers to the exchanges required in case the memory is not enough to fit all of RHS matrix X. We split the RHS into groups of "Xc" columns. 
 Each Xc processors working on contiguous columns only have separate copies of Xc. After every reduction, a circular exchange between the Xc processsors produces the next result. 
 
-## Algorithm:
+### Algorithm:
 
 The main ideas are described in the two figures. The first figure shows the arrangement of the data. 
 So each processor has infinite memory and gets an mxn block (from matrix W) and an nxp block (from matrix X). 
@@ -55,12 +55,39 @@ compute and fitting memory constraints solver.
 The current algorithm does not work on some irregular sized matrices covered by assertions. That issue will be fixed without
 any performance impact (the "residual group" problem).
 
-## Optimizer:
+### Optimizer:
 
 The optimizer that determines the partitioning, the block sizing (m, n, p), and the number of exchanges (Xc) is not perfect here. 
 For instance, for 2048x2048 square MM, it only engages 512 processors out of 800 possible processors. 
 
 More work has to be done on optimizer. If the residual group problem is solved, the optimizer naturally improves. But need a better
 solver than the iterative method in here (perhaps, look into scipy).
+
+The ideal optimizer should be a multi-variable constraint solver for m, n, p, Xch such that number of processors and processor memory
+are close to maximum values without going over.
+
+### Simulating Processors
+
+The algorithm is run on "simulated" processors using a simple abstraction where a processor can multiply a block with a certain efficiency (80% by default).
+The loss in efficiency is due to memory accesses needed for reloading or setting up the SIMD or systolic array. 
+
+The bandwidth, frequency, and fmacs (width of the simd or systolic array) can be specified. An fmac performs a multiply and an add. So, in a reduction, 
+the multiply is unused.
+
+This approximation is fairly acceptable in a cluster with uniform P2P bandwidth. For multi-bandwidth
+
+The code finds the partitioning, initializes the processors, and runs the algorithm that includes computation, reduction and exchanges.
+A cycle count is returned for each task (computation, reduction, exchange). With the frequency, the effective TFLOPs is measured.
+
+### Comparison with Other Algorithms
+
+TBD. The same appartus will be used to run Cannon's and probably other algorithms like Summa.
+
+### Sample output
+
+![2688-dimension square matrix multiplication](https://github.com/bpudiped/MosaicMM/blob/master/mosiacMM.png)
+
+
+
 
 
