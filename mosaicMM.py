@@ -19,7 +19,7 @@ class Proc:
     w = []
     x = []
     s = []
-    y = []   # the memory for y is needed anyway for internal sums during core-level block-mm
+    # y = []   # the memory for y is needed anyway for internal sums during core-level block-mm
     m = 0
     n = 0
     p = 0
@@ -31,7 +31,7 @@ class Proc:
         self.w = np.zeros((dm, dn))
         self.x = np.zeros((dn, dp))
         self.s = np.zeros((dm, dp))
-        self.y = np.zeros((dm, dp))  # unused, placeholder for FP32 intermediate results memory
+        # self.y = np.zeros((dm, dp))  # unused, placeholder for FP32 intermediate results memory
         self.m = dm
         self.n = dn
         self.p = dp
