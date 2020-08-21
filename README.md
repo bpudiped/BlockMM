@@ -20,7 +20,7 @@ There are two key ideas in the algorithm:
    
    
 
-### Complexity Analysis of Algorithm
+### Complexity
 
 The  complexity of this algorithm is virtually the same as any other block-MM except the reduction part. Consider, LHS is W (dimensions M x N). RHS is X (dimensions N x P). 
 Output is Y (dimensions MxP).
@@ -41,7 +41,7 @@ The total time = O(M x P x 2(N-1)/F  + 4 x m x p x log(N/n)/ B + 4 x Xc x n x P/
 Here "Xc" refers to the exchanges required in case the memory is not enough to fit all of RHS matrix X. We split the RHS into groups of "Xc" columns. 
 Each Xc processors working on contiguous columns only have separate copies of Xc. After every reduction, a circular exchange between the Xc processsors produces the next result. 
 
-### Algorithm
+### Algorithm details
 
 The main ideas are described in the two figures. The first figure shows the arrangement of the data. 
 So each processor has infinite memory and gets an mxn block (from matrix W) and an nxp block (from matrix X). 
