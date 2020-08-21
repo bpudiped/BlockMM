@@ -32,7 +32,7 @@ Consider bandwidth between any two processors is fixed at B (GB/sec).
 
 For the impractical case of block size 1x1 and with infinite memory (assuming FP32).
 
-Time is approximated as O(M x P x (2N-1)/F + 4 x 1 x 1 x logN/B) nSec (or mSec if M/P/N are in millions).
+Time is approximated as O(M x P x (2N-1)/F + 4 x 1 x 1 x logN/B) nSec (or mSec or secs if M x P x N is in millions or billions).
 So, there are no "exchanges" happening as memory is limitless. The only movement is for summation of all results in the N-dimension.
 
 Let the LHS block be m x n, and RHS block be n x p.
