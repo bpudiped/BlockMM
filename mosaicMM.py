@@ -127,9 +127,6 @@ def partition(M, N, P, MaxProcs, MaxProcMem):
 
     # actual memory used in a processor for inputs(w, x), output (s), and intermediate (y)
     ProcMem = int(((m*n)*2 + (n*p)*2 + (m*p)*2 + (m*p)*4)/1024)
-    #print("ProcMem needed is ", ProcMem, " KB")
-
-    ProcMem = int(((m*n)*2 + (n*p)*2 + (m*p)*2 + (m*p)*4)/1024)
 
     nProcs = int(Mg*Pg*Ng)
 
