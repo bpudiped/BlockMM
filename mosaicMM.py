@@ -12,9 +12,9 @@ import time
 import datetime as dt
 import sys
 
-## Proc - can be instaNgiated in various ways to create a multi-Proc Accelerator
-#  Sintle abstraction for multiple architectures (v100, TPU, etc.)
-#  CurreNgly, instaNgiated dynamically by readint config (setConfig) in matmult
+## Proc - can be instaniated in various ways to create a multi-Proc network
+#  Sintle abstraction for multiple architectures (HPC cluster of CPUs, v100 tensor cores, TPU, etc.)
+#  Check "setConfig" in matmult for instantiation
 class Proc:
     w = []
     x = []
@@ -48,7 +48,7 @@ class Proc:
         cyc = math.ceil(self.m*self.p*(2*self.n-1)/self.fw/self.ef)
         return cyc
 
-
+# Code: Partitioning, Exchange, Reduce, MM
 def partition(M, N, P, MaxProcs, MaxProcMem):
 
     ## Partioner / optimizer / constraint solver for mixed precision
