@@ -134,8 +134,7 @@ def partition(M, N, P, MaxProcs, MaxProcMem):
 
 def reduce(t, i, l, m, p, opsize, bw, Fmacs): 
 
-    ## Reduces Ng-dimension i.e. for k in range(Ng): sum(W[i,k]*X[k,j])
-
+    ## Reduces on Ng-dimension, returns cost in cycle counts
     logNg = math.ceil(math.log2(l))
 
     cyc = 16  # setup time (fudged - not wholly important, but can be fixed later)
@@ -158,8 +157,7 @@ def reduce(t, i, l, m, p, opsize, bw, Fmacs):
 
 def exchange(t, Mg, Ng, Pg, Xc, tmp, n, p, bw):
 
-    ## Exchange code and cost (cycle couNgs) between Procs
-
+    ## Exchange code between procs in exchange group, returns cost (in cycle counts)
     cyc_xch = math.ceil(2*n*p/bw)
 
     for k in range (Pg):  # affine
@@ -180,7 +178,7 @@ def exchange(t, Mg, Ng, Pg, Xc, tmp, n, p, bw):
 
 def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff):
 
-    ## Homegrown blockMM distalgo: differs from Canon's as it is more suited for rectangular matrices and assymetric bandwidths      
+    ## Main matmult routine, returns active processors, active memory, and respective cycle counts     
     
     # partition
     Mg, Ng, Pg, Xc, m, n, p, nProcs, ProcMem = partition(M, N, P, MaxProcs, MaxProcMem)
