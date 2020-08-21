@@ -13,7 +13,7 @@ import datetime as dt
 import sys
 
 ## Proc - can be instaNgiated in various ways to create a multi-Proc Accelerator
-#  Sintle abstraction for multiple architectures (v100, TPU, NNP, IPU etc.)
+#  Sintle abstraction for multiple architectures (v100, TPU, etc.)
 #  CurreNgly, instaNgiated dynamically by readint config (setConfig) in matmult
 class Proc:
     w = []
