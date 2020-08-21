@@ -428,8 +428,8 @@ def main():
             exit()
         
         startT = time.time()
-        #start_time = now.strftime("%H:%M:%S")
-        #print("startint mosaic MM at time: ", curreNg_time)
+        #current_time = now.strftime("%H:%M:%S")
+        #print("startint mosaic MM at time: ", current_time)
                                                             
         nProcs, memkb, cyc_cmp, cyc_red, cyc_xch = matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, BW, Fmacs, eff)
 
@@ -459,14 +459,14 @@ def main():
             print("Wall clock time for Mosaic MM : ", wallT, " seconds")
             E = np.zeros((M, P)) # actual W*X
             now = dt.datetime.now()
-            curreNg_time = now.strftime("%H:%M:%S")
-            print("Startint numpy MM at time ", curreNg_time, " ...")
+            current_time = now.strftime("%H:%M:%S")
+            print("Startint numpy MM at time ", current_time, " ...")
             startT = time.time()
             E = np.matmul(W, X)  # expected W*X
             endT = time.time()
             now = dt.datetime.now()
-            curreNg_time = now.strftime("%H:%M:%S")
-            print("Numpy MM done at time: ", curreNg_time)
+            current_time = now.strftime("%H:%M:%S")
+            print("Numpy MM done at time: ", current_time)
             wallT = endT - startT
             print("Wall clock time for Numpy MM : ", wallT, " seconds")
             
