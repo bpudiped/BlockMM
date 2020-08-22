@@ -1,4 +1,4 @@
-# Block Matrix-Multiplication over HW-Arch-Simulator
+# Mosaic - Block Matrix-Multiplication (simulated over a cluster or an array-of-processors arch)
 # The HW details are number of processors (or tiles or tensor cores), number of Fmacs, bandwidth, frequency.
 # Then the MM is partitioned over the the processors using a new algorithm (check README.md)
 
@@ -12,8 +12,8 @@ import time
 import datetime as dt
 import sys
 
-## Proc - can be instaniated in various ways to create a multi-Proc network
-#  Sintle abstraction for multiple architectures (HPC cluster of CPUs, v100 tensor cores, TPU, etc.)
+## Proc class - can be instaniated in various ways to create a multi-Proc network
+#  Simple abstraction for multiple architectures (HPC cluster of CPUs, v100 tensor cores, TPU, etc.)
 #  Check "setConfig" in matmult for instantiation
 class Proc:
     w = []
@@ -48,9 +48,8 @@ class Proc:
         cyc = math.ceil(self.m*self.p*(2*self.n-1)/self.fw/self.ef)
         return cyc
 
-# Code: Partitioning, Exchange, Reduce, MM
+##### Code Sections: Partitioning, Exchange, Reduce, MM
 def partition(M, N, P, MaxProcs, MaxProcMem):
-
     ## Partioner / optimizer / constraint solver for mixed precision
     ## Main objective is to maximize cores
     ## Secondary objective is to avoid transfers by replicating memory is availble
@@ -109,9 +108,9 @@ def partition(M, N, P, MaxProcs, MaxProcMem):
         ProcMem = int(((m*n)*2 + (n*p)*2 + (m*p)*2 + (m*p)*4)/1024)
  
         Pg = int(P/p)
-
+        Pi = Pg
+        
         while (Mg*Pg*Ng > MaxProcs):
-            Pi = Pg
             Xc += 1              # add an exchange
             if (Pi % Xc):        # FIXME: residuals are not handled at-the-moment
                continue
@@ -133,8 +132,8 @@ def partition(M, N, P, MaxProcs, MaxProcMem):
     return Mg, Ng, Pg, Xc, m, n, p, nProcs, ProcMem
 
 def reduce(t, i, l, m, p, opsize, bw, Fmacs): 
-
     ## Reduces on Ng-dimension, returns cost in cycle counts
+    
     logNg = math.ceil(math.log2(l))
 
     cyc = 16  # setup time (fudged - not wholly important, but can be fixed later)
@@ -156,8 +155,8 @@ def reduce(t, i, l, m, p, opsize, bw, Fmacs):
     return cyc
 
 def exchange(t, Mg, Ng, Pg, Xc, tmp, n, p, bw):
-
     ## Exchange code between procs in exchange group, returns cost (in cycle counts)
+    
     cyc_xch = math.ceil(2*n*p/bw)
 
     for k in range (Pg):  # affine
@@ -177,7 +176,6 @@ def exchange(t, Mg, Ng, Pg, Xc, tmp, n, p, bw):
     return cyc_xch
 
 def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff):
-
     ## Main matmult routine, returns active processors, active memory, and respective cycle counts     
     
     # partition
@@ -251,6 +249,7 @@ def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff):
 
 def setConfig(Proc):   # choose chip configuration to run sim
     # cfg: MaxProcs, MaxProcMem (kb), BW (GB/sec), Fmacs, freq (GHz), fmac-eff (< 1)
+    
     if Proc == "v100":
         chipCfg = [800, 4096, 1024, 64, 1.2, 0.8]
     elif Proc == "hpc1024":
@@ -472,7 +471,7 @@ def main():
                 print(Y)
                 print("Matrix E is ")
                 print(E)
-                print("Actual Y is differeNg from Expected Y\n")
+                print("Actual Y is different from Expected Y\n")
 
 
 if __name__== "__main__":
