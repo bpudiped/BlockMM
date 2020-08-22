@@ -16,6 +16,7 @@ There are two key ideas in the algorithm:
    Note: exchanges are the outermost loop and costly. Note that there are two distinct blocks by dimensions due to the rectangular sizes (unlike Cannon's). 
    
 2. Only one of the two blocks moves around during computation. The other one consistently stays in the same processor. This is in contrast to Cannon's and Summa. This decreases size of data movement.
+
    However, it means that reduction in  $\sum$ (W[i,j]*X[j,k]) for j in (1:N) cannot be done in the same processor. The algorithm reduces by recursive halving it across all tiles in the common dimension.
    
    
@@ -58,8 +59,8 @@ compute and fitting memory constraints solver.
 
 ![Exchange of Matrix X-blocks](https://github.com/bpudiped/MosaicMM/blob/master/mosiacMM.png)
 
-The current algorithm does not work on some irregular sized matrices covered by assertions. That issue will be fixed without
-any performance impact (the "residual group" problem).
+The current implementation does not work yet on some irregular sized matrices covered by assertions. That issue will be fixed without
+any performance impact (fixing the "residual group" problem i.e. M and P are not divisible by number_of_exchanges aka group_size).
 
 ### Optimizer
 
@@ -80,7 +81,7 @@ The loss in efficiency is due to memory accesses needed for reloading or setting
 The bandwidth, frequency, and fmacs (width of the simd or systolic array) can be specified. An fmac performs a multiply and an add. So, in a reduction, 
 the multiply is unused.
 
-This approximation is fairly acceptable in a cluster with uniform P2P bandwidth. For multi-bandwidth
+This approximation is fairly acceptable in a cluster with uniform P2P bandwidth. For multi-bandwidth clusters, the algorithm has to be enhanced for topology and the bandwidth, but this algo is more friendlier towards dual-level networks because the reductions and exchanges both happen within a group of processors rather than any-to-any.
 
 The code finds the partitioning, initializes the processors, and runs the algorithm that includes computation, reduction and exchanges.
 A cycle count is returned for each task (computation, reduction, exchange). With the frequency, the effective TFLOPs is measured.
