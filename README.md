@@ -18,23 +18,42 @@ Yet, there are diffferences too. One of the two matrices (either LHS or RHS) nev
 Let us take the high-level loops of matrix multiplication:
 
 // Initialize Y to all zeros
-for (j=0; j<N; ++j) 
+for (j=0; j<N; ++j):
+
    for (i=0; i<M; ++i): 
+   
       for (k=0; k<P; ++k):
+      
          Y\[i,\k\] += W\[i,j\] x X\[j, k\]
 
 There are also two other key ideas in the algorithm:
 
 1. Based on the memory available in the processor and number of processors, matrix is partitioned into right-size rectangular blocks for LHS and RHS. 
    Matrix blocks are replicated as much as possible to avoid unnecessary exchanges. If there is not enough memory, the RHS matrix is split up for exchanges.
-   Note: exchanges are the outermost loop and costly. Note that there are two distinct blocks by dimensions due to the rectangular sizes (unlike Cannon's). 
+   Note: exchanges are the outermost loop (not shown in the previous loops) and costly. Note that there are two distinct blocks by dimensions due to the rectangular sizes (unlike Cannon's). 
    
 2. Only one of the two blocks moves around during computation. The other one consistently stays in the same processor. This is in contrast to Cannon's and Summa. This decreases size of data movement.
 
    However, it means that reduction in cannot be done in the same processor. 
    The algorithm, therefore, uses a simple recursive halving (or binary reduction) for the outermost loop (i.e. j in 0 to N-1)
    
+With exchanges, the loops at a high-level are:
 
+// Initialize Y to all zeros
+// Xc is number of exchanges determined by optimizer to fit memory contraints
+Px = P/Xc
+for (e=0; e < Xc; ++ e):
+
+   for (j=0; j<N; ++j):
+
+      for (i=0; i<M; ++i): 
+   
+         for (k=e*Px; k< (e+1)*Px; ++k):
+      
+            Y\[i,\k\] += W\[i,j\] x X\[j, k\]
+            
+    exchange(e)  // routine that exchanges blocks of X (within its group)
+            
 NOTE: The simple implementation here is on a simulator and does not cover a lot irregular sized matrices. It is also single-threaded at the moment. Also, lacking an apples-to-apples comparision with Cannon's and Summa's (i.e running those algorithms on the same simulated processors).
 
 ### Complexity
