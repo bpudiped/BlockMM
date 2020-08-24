@@ -31,10 +31,11 @@ There are also two other key ideas in the algorithm:
    
 2. Only one of the two blocks moves around during computation. The other one consistently stays in the same processor. This is in contrast to Cannon's and Summa. This decreases size of data movement.
 
-   However, it means that reduction in  \sum (W\[i,j\] \* X\[j,k\]) for j in (0:N-1) cannot be done in the same processor. 
-   The algorithm, therefore, uses a simple recursive halving (or binary reduction) for the outermost loop (i.e. k)
+   However, it means that reduction in cannot be done in the same processor. 
+   The algorithm, therefore, uses a simple recursive halving (or binary reduction) for the outermost loop (i.e. j in 0 to N-1)
    
- 
+
+NOTE: The simple implementation here is on a simulator and does not cover a lot irregular sized matrices. It is also single-threaded at the moment. Also, lacking an apples-to-apples comparision with Cannon's and Summa's (i.e running those algorithms on the same simulated processors).
 
 ### Complexity
 
