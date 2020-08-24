@@ -12,7 +12,7 @@ This algorithm (called mosaic) was developed for both square and rectangular mat
 There are two key ideas in the algorithm:
 
 1. Based on the memory available in the processor and number of processors, matrix is partitioned into right-size rectangular blocks for LHS and RHS. 
-   Matrix blocks are replicated as much as possilbe to avoid unnecessary exchanges. If there is not enough memory, the RHS matrix is split up for exchanges.
+   Matrix blocks are replicated as much as possible to avoid unnecessary exchanges. If there is not enough memory, the RHS matrix is split up for exchanges.
    Note: exchanges are the outermost loop and costly. Note that there are two distinct blocks by dimensions due to the rectangular sizes (unlike Cannon's). 
    
 2. Only one of the two blocks moves around during computation. The other one consistently stays in the same processor. This is in contrast to Cannon's and Summa. This decreases size of data movement.
