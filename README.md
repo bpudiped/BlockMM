@@ -18,6 +18,7 @@ Yet, there are diffferences too. One of the two matrices (either LHS or RHS) nev
 Let us take the high-level loops of matrix multiplication:
 
 // Initialize Y to all zeros
+
 for (j=0; j<N; ++j):
 
    for (i=0; i<M; ++i): 
@@ -40,7 +41,9 @@ There are also two other key ideas in the algorithm:
 With exchanges, the loops at a high-level are:
 
 // Initialize Y to all zeros
+
 // Xc is number of exchanges determined by optimizer to fit memory contraints
+
 Px = P/Xc
 for (e=0; e < Xc; ++ e):
 
