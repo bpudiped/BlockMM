@@ -19,13 +19,13 @@ Let us take the high-level loops of matrix multiplication:
 
 // Initialize Y to all zeros
 
-for (j=0; j<N; ++j):
+   for (j=0; j<N; ++j):
 
-   for (i=0; i<M; ++i): 
+      for (i=0; i<M; ++i): 
    
-      for (k=0; k<P; ++k):
+         for (k=0; k<P; ++k):
       
-         Y\[i,\k\] += W\[i,j\] x X\[j, k\]
+            Y\[i,\k\] += W\[i,j\] x X\[j, k\]
 
 There are also two other key ideas in the algorithm:
 
@@ -44,18 +44,19 @@ With exchanges, the loops at a high-level are:
 
 // Xc is number of exchanges determined by optimizer to fit memory contraints
 
-Px = P/Xc
-for (e=0; e < Xc; ++ e):
+   Px = P/Xc
 
-   for (j=0; j<N; ++j):
+   for (e=0; e < Xc; ++ e):
 
-      for (i=0; i<M; ++i): 
+      for (j=0; j<N; ++j):
+
+         for (i=0; i<M; ++i): 
    
-         for (k=e*Px; k< (e+1)*Px; ++k):
+            for (k=e*Px; k< (e+1)*Px; ++k):
       
-            Y\[i,\k\] += W\[i,j\] x X\[j, k\]
+               Y\[i,\k\] += W\[i,j\] x X\[j, k\]
             
-    exchange(e)  // routine that exchanges blocks of X (within its group)
+      exchange(e)  // routine that exchanges blocks of X (within its group)
             
 NOTE: The simple implementation here is on a simulator and does not cover a lot irregular sized matrices. It is also single-threaded at the moment. Also, lacking an apples-to-apples comparision with Cannon's and Summa's (i.e running those algorithms on the same simulated processors).
 
