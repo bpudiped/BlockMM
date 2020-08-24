@@ -5,11 +5,25 @@ Initial check-in.
 
 ###  Overview
 
-The current distributed block MM algorithms such as [Cannon](https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and [Summa](http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for a certain class of matrices where common "N" dimension is very large.
-
 This algorithm (called mosaic) was developed for both square and rectangular matrices, and the blocks too are square or rectangular (leading to a lot of possible scenarios for the optimizer). It was simulated and verified by comparing its results with numpy.matmul. The performance is estimated from cycle counts coming from the simulated processors.
 
-There are two key ideas in the algorithm:
+The current distributed block MM algorithms such as [Cannon](https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and [Summa](http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for a certain class of matrices where common "N" dimension is very large.
+
+While the genrealized form of Cannon's original algorithm works with rectangular matrices, Cannon's overhead cost involves shifting two blocks after every synchronized iteration. This pays a heavy penalty in huge matrices with large / large characteristics i.e. large number of processors, and large block sizes (as the matrices are gigantic).
+
+I hadn't read about Summa when I designed Mosaic, but Mosaic seems to have many things in common with Summa (a high-level overview of Summa is [here](http://cseweb.ucsd.edu/classes/fa12/cse260-b/Lectures/Lec13.pdf)) 
+
+Yet, there are diffferences too. One of the two matrices (either LHS or RHS) never moves in Mosaic. This property is useful when choosing block sizes (mxn and nxp) so that the stationary matrix may have a large block size. 
+
+Let us take the high-level loops of matrix multiplication:
+
+// Initialize Y to all zeros
+for (j=0; j<N; ++j) 
+   for (i=0; i<M; ++i): 
+      for (k=0; k<P; ++k):
+         Y\[i,\k\] += W\[i,j\] x X\[j, k\]
+
+There are also two other key ideas in the algorithm:
 
 1. Based on the memory available in the processor and number of processors, matrix is partitioned into right-size rectangular blocks for LHS and RHS. 
    Matrix blocks are replicated as much as possible to avoid unnecessary exchanges. If there is not enough memory, the RHS matrix is split up for exchanges.
@@ -17,9 +31,10 @@ There are two key ideas in the algorithm:
    
 2. Only one of the two blocks moves around during computation. The other one consistently stays in the same processor. This is in contrast to Cannon's and Summa. This decreases size of data movement.
 
-   However, it means that reduction in  $\sum$ (W[i,j]*X[j,k]) for j in (1:N) cannot be done in the same processor. The algorithm reduces by recursive halving it across all tiles in the common dimension.
+   However, it means that reduction in  $\sum$ (W\[i,j\] \* X\[j,k\]) for j in (0:N-1) cannot be done in the same processor. 
+   The algorithm, therefore, uses a simple recursive halving (or binary reduction) for the outermost loop (i.e. k)
    
-   
+ 
 
 ### Complexity
 
