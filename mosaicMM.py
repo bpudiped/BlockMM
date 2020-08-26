@@ -436,15 +436,10 @@ def main():
 
         print("Effective TFLOPS at freq ",  freq, "GHz: ", tflops)
         print("Maximum TFLOPs at freq ", freq, "GHz: ", maxtflops)
-
         endT = time.time()
-
         wallT = endT - startT
 
         Y = Y.astype(int)
-
-        print("Matrix Y is ")
-        print(Y)
 
         if (verify):
             print("Wall clock time for Mosaic MM : ", wallT, " seconds")
@@ -464,8 +459,8 @@ def main():
             if (np.array_equal(E, Y)):
                 print("Yoohoo! Actual and Expected Match!!!\n")
             else:
-                # print("Matrix Y is ")
-                # print(Y)
+                print("Matrix Y is ")
+                print(Y)
                 print("Matrix E is ")
                 print(E)
                 print("Actual Y is different from Expected Y\n")
