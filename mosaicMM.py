@@ -76,6 +76,7 @@ def partition(M, N, P, MaxProcs, MaxProcMem):
     Xc = 1          # value of 1 implies no exchanges
     Pg = int(P/p)  
 
+    # another stratey to consider is minimizing Mg (i.e. maximum m) and maximizing Ng (minimum n)
     closest = 0
     for Nv in range(1, MaxProcs):
         if (N % Nv):
@@ -92,16 +93,14 @@ def partition(M, N, P, MaxProcs, MaxProcMem):
     n = int(N/Ng)
     p = int(P/Pg)
 
-    # actual memory used in a processor for inputs(w, x), output (s), and intermediate (y)
-    ProcMem = int(((m*n)*2 + (n*p)*2 + (m*p)*2 + (m*p)*4)/1024)
-    # print("ProcMem needed is ", ProcMem, " KB")
-
     #if Proc mem is over limit, increase exchanges (increase Xc / decrease Pg) to fit Procs
     Xc = 1          # exchange groups
     Pi = Pg
+    ProcMem = int(((m*n)*2 + (n*p)*2 + (m*p)*2 + (m*p)*4)/1024)
 
     while (ProcMem > MaxProcMem):
         p1 = p - 1
+        assert(p1 > 0), "Error: p is too small - cannot handle irregular case yet!"
         while (P % p1): 
             p1 -= 1
         p = p1
@@ -112,16 +111,21 @@ def partition(M, N, P, MaxProcs, MaxProcMem):
         
         while (Mg*Pg*Ng > MaxProcs):
             Xc += 1              # add an exchange
-            if (Pi % Xc):        # FIXME: residuals are not handled at-the-moment
-               continue
-            Pg = int(Pi/Xc)
+            Pg = math.ceil(Pi/Xc)
             if (Xc == Pi): 
                 break
 
         nProcs = Mg*Pg*Ng
         assert(nProcs < MaxProcs), "Error: cannot fit in procMem!"
-    
-    m = int(M/Mg)
+
+    # Pad Mg until it is divisible by Xc
+    Mg1 = Mg # Mg1 is actual value, Mg is padded value
+    while (Mg % Xc):
+        Mg += 1
+        if (Mg*Ng*Pg > MaxProcs):
+            break
+
+    m = int(M/Mg1)
     n = int(N/Ng)
 
     # actual memory used in a processor for inputs(w, x), output (s), and intermediate (y)
@@ -129,7 +133,7 @@ def partition(M, N, P, MaxProcs, MaxProcMem):
 
     nProcs = int(Mg*Pg*Ng)
 
-    return Mg, Ng, Pg, Xc, m, n, p, nProcs, ProcMem
+    return Mg1, Mg, Ng, Pg, Xc, m, n, p, nProcs, ProcMem
 
 def reduce(t, i, l, m, p, opsize, bw, Fmacs): 
     ## Reduces on Ng-dimension, returns cost in cycle counts
@@ -138,7 +142,7 @@ def reduce(t, i, l, m, p, opsize, bw, Fmacs):
 
     cyc = 16  # setup time (fudged - not wholly important, but can be fixed later)
     cyc_xch = math.ceil(opsize*m*p/bw) # note: sum is fp16 reduced
-    cyc_cmp = math.ceil(m*p/Fmacs) # additions only wasting multiplier
+    cyc_cmp = math.ceil(m*p/Fmacs) # additions only (multiplier is wasted)
 
     #print("Number of Reduce steps: ", logNg)
     for r in range(logNg):
@@ -150,7 +154,7 @@ def reduce(t, i, l, m, p, opsize, bw, Fmacs):
                 t[i][j].s = t[i][j].s + t[i][j1].s
             j = j + 2**(r+1)
 
-        cyc = cyc + cyc_cmp + cyc_xch
+        cyc += cyc_cmp + cyc_xch
 
     return cyc
 
@@ -158,6 +162,8 @@ def exchange(t, Mg, Ng, Pg, Xc, tmp, n, p, bw):
     ## Exchange code between procs in exchange group, returns cost (in cycle counts)
     
     cyc_xch = math.ceil(2*n*p/bw)
+
+    assert(Mg % Xc == 0), "Error: Mg is not divisible by Xc"
 
     for k in range (Pg):  # affine
         for i1 in range(0, Mg, Xc):    # affine   
@@ -175,44 +181,26 @@ def exchange(t, Mg, Ng, Pg, Xc, tmp, n, p, bw):
 
     return cyc_xch
 
-def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff):
-    ## Main matmult routine, returns active processors, active memory, and respective cycle counts     
+def alignedMM(W, X, Y, P, Mg1, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff):
+    #Matrix mutiplication where Mg must be aligned i.e Mg % Xc == 0
+    #Mg1 is actual number of blocks in M-dimension
+    #This routine can be also be used multi-threaded speedup (TBD)
     
-    # partition
-    Mg, Ng, Pg, Xc, m, n, p, nProcs, ProcMem = partition(M, N, P, MaxProcs, MaxProcMem)
-
-    print("\tM is ", M, "; N is ", N,"; P is ", P)
-    print("\tNumber of Active Processors: ", nProcs, "; Active Memory-per-Proc is ", ProcMem, " KB")
-    #print("\tMg: ", Mg, "; Ng: ", Ng, "; Pg = ", Pg, "; Xc: ", Xc)
-    print("\tm is ", m, "; n is ", n,"; p is ", p)
-
-    # bunch of assertions to make sure we are fine
-    assert(nProcs <= MaxProcs), "Error: nProcs are over MaxProcs!"
-    assert(ProcMem <= MaxProcMem), "Error: ProcMem is over limit!"
-    assert(Mg >= Xc), "Error: unable to satisfy Mg and Xc"
-    assert (P == Pg*Xc*p), "Dimension P is incorrect"
-    assert ((Mg != 0) and (Ng != 0) and (Pg != 0)), "Mg/Ng/Pg has a zero value"
-    
-    #exit()
-
     print("\tMg (Groups-x): ", Mg, "; Ng (Reduces): ", Ng, "; Pg (Groups-y) = ", Pg, "; Xc (Exchanges): ", Xc)
 
     # Initialize Procs - perhaps, make this 1-Dimensional in C-version
     tile = [[Proc(m,n,p,Fmacs,eff) for j in range(Ng)] for i in range(Mg*Pg)]
     # a temporary tile used for simulating exchange 
     tmp0 = [Proc(m,n,p,Fmacs,eff) for j in range(Ng)]
-    
-    #input from host to Procs: diagonal initialization (W, X)  
+
     for i in range (Mg):  
         for k in range(Pg): # for every "output" tile in [Mg, Pg] 
             i1 = i*Pg + k
             k1 = k*Xc + (i%Xc) 
             for j in range(Ng): # initialize W and X for hidden depth of Ng tiles
-                tile[i1][j].w = W[i*m:(i+1)*m, j*n:(j+1)*n]
+                if (i < Mg1):
+                    tile[i1][j].w = W[i*m:(i+1)*m, j*n:(j+1)*n]
                 tile[i1][j].x = X[j*n:(j+1)*n, k1*p:(k1+1)*p]
- 
-    #Matrix of more regular dimensions (Mg must be divisible by Xc)
-    assert((Mg % Xc) == 0), "Error: Mg is not divisible by Xc! To be fixed later"
 
     # Performance Counters for compute, reduce, and exchange
     cyc_cmp = 0
@@ -221,22 +209,25 @@ def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff):
 
     ### Main Matrix multiplication loop
     for ex in range (Xc):  # not affine (serialized)
-        #print("Now in Exchange loop: ", ex)
+        print("Now in Exchange loop: ", ex)
         for i in range(Mg): # affine
             for k in range(Pg):   # affine
                 i1 = i*Pg + k
                 # multiply
                 for j in range(Ng):
-                    #tile[i1][j].s = np.dot(tile[i1][j].w, tile[i1][j].x)
                     cyc_cmp1 = tile[i1][j].ndot()
 
                 cyc_red1 = reduce(tile, i1, Ng, m, p, 2, bw, Fmacs) 
 
-                #minor fixme: direct sum to final place is assumed zero cost
-                k1 = k*Xc + (i+ex)%Xc
-                Y[i*m:(i+1)*m, k1*p:(k1+1)*p] = tile[i1][0].s
+                if (i < Mg1):
+                    k1 = k*Xc + (i+ex) % Xc
+                    if (k1*p < P):
+                        Y[i*m:(i+1)*m, k1*p:(k1+1)*p] = tile[i1][0].s               
 
-        cyc_xch1 = exchange(tile, Mg, Ng, Pg, Xc, tmp0, n, p, bw)
+        if (ex < (Xc-1)):
+            cyc_xch1 = exchange(tile, Mg, Ng, Pg, Xc, tmp0, n, p, bw)
+        else:
+            cyc_xch1 = 0
 
         cyc_cmp += cyc_cmp1
         cyc_red += cyc_red1
@@ -245,27 +236,48 @@ def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff):
     del tile      
     del tmp0
 
+    return cyc_cmp, cyc_red, cyc_xch
+
+def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff):
+    ## Main matmult routine, returns active processors, active memory, and respective cycle counts   
+  
+    # partition (To be enhanced: not the most optimized way yet)
+    # Note: Mg1 are number of non-zero block rows while Mg has zero-padded rows to align at the end
+    Mg1, Mg, Ng, Pg, Xc, m, n, p, nProcs, ProcMem = partition(M, N, P, MaxProcs, MaxProcMem)
+
+    print("\tM is ", M, "; N is ", N,"; P is ", P)
+    print("\tNumber of Active Processors: ", nProcs, "; Active Memory-per-Proc is ", ProcMem, " KB")
+    print("\tm is ", m, "; n is ", n,"; p is ", p)
+
+    # bunch of assertions to make sure we are fine
+    assert(nProcs <= MaxProcs), "Error: nProcs are over MaxProcs!"
+    assert(ProcMem <= MaxProcMem), "Error: ProcMem is over limit!"
+    assert(Mg >= Xc), "Error: unable to satisfy Mg and Xc"
+    #assert (P == Pg*Xc*p), "Dimension P is incorrect"
+    assert ((Mg != 0) and (Ng != 0) and (Pg != 0)), "Mg/Ng/Pg has a zero value"
+
+    cyc_cmp, cyc_red, cyc_xch = alignedMM(W, X, Y, P, Mg1, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff)
+
     return nProcs, ProcMem, cyc_cmp, cyc_red, cyc_xch
 
 def setConfig(Proc):   # choose chip configuration to run sim
-    # cfg: MaxProcs, MaxProcMem (kb), BW (GB/sec), Fmacs, freq (GHz), fmac-eff (< 1)
+    # cfg: MaxProcs, MaxProcMem (kb), BW (per-core bytes/cyc), Fmacs, freq (GHz), fmac-eff (< 1)
     
     if Proc == "v100":
-        chipCfg = [800, 4096, 1024, 64, 1.2, 0.8]
+        chipCfg = [800, 4096, 4, 64, 1.2, 0.8]
     elif Proc == "hpc1024":
-        chipCfg = [1024, 16384, 20, 32, 2, 0.8]
+        chipCfg = [1024, 16384, 1, 32, 2, 0.8]
     else: #an arbitrary config
-        chipCfg = [1000, 384, 8192, 64, 1, 0.8]
+        chipCfg = [1000, 384, 8192, 4, 1, 0.8]
 
     return chipCfg
 
 def main():
-
     cfg = "v100"
     M = 2688
     N = 2688
     P = 2688
-    
+
     verify = False
     sweep  = False
 
@@ -305,7 +317,6 @@ def main():
             assert(0), "Error! Invalid Option. Usage: mosaic [-v] [-M dimenM] [-N dimenN] [-P dimenP] [-s lowN highN step]"
         i = i + 1
 
- 
     [MaxProcs, MaxProcMem, BW, Fmacs, freq, eff] = setConfig(cfg)
 
     print("Configuration is ", cfg)
@@ -347,20 +358,6 @@ def main():
             memkblist.append(memkb)
             sizelist.append(N)
 
-        print("sizes are ")
-        print(sizelist)
-        print("cycles are ")
-        print(cyclist)
-
-        print("compute cycles are ")
-        print(cyccmplist)
-        print("reduce cycles are ")
-        print(cycredlist)
-        print("xchg cycles are ")
-        print(cycxchlist)
-        print("Effective TFLOPs are ")
-        print(tfloplist)
-
         plt.figure(1)
         y_pos = np.arange(len(sizelist))
 
@@ -381,7 +378,6 @@ def main():
         ax2.bar(y_pos-0.2, cyccmplist, width=0.2, color='b', align='ceNger')
         ax2.bar(y_pos, cycredlist, width=0.2, color='g', align='ceNger')
         ax2.bar(y_pos+0.2, cycxchlist, width=0.2, color='r', align='ceNger')
-
 
         plt.figure(3)
         colors = {'Procs':'blue', 'ProcMemKB':'red'}         
@@ -410,8 +406,7 @@ def main():
 
         plt.show()
 
-    else:
-        
+    else:       
         W = np.random.randint(10, size=(M, N)) 
         X = np.random.randint(10, size=(N, P))
         Y = np.zeros((M, P)) # actual W*X
@@ -445,9 +440,11 @@ def main():
         endT = time.time()
 
         wallT = endT - startT
-        
 
         Y = Y.astype(int)
+
+        print("Matrix Y is ")
+        print(Y)
 
         if (verify):
             print("Wall clock time for Mosaic MM : ", wallT, " seconds")
@@ -467,8 +464,8 @@ def main():
             if (np.array_equal(E, Y)):
                 print("Yoohoo! Actual and Expected Match!!!\n")
             else:
-                print("Matrix Y is ")
-                print(Y)
+                # print("Matrix Y is ")
+                # print(Y)
                 print("Matrix E is ")
                 print(E)
                 print("Actual Y is different from Expected Y\n")
@@ -476,5 +473,3 @@ def main():
 
 if __name__== "__main__":
   main()
-
-  
