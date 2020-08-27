@@ -25,7 +25,7 @@ Let us take the high-level loops of matrix multiplication:
       
          for (k=0; k<P; ++k):
          
-            Y\[i,\k\] += W\[i,j\] x X\[j, k\]
+            Y[i,k] += W[i,j] x X[j, k]
 
 There are also two other key ideas in the algorithm:
 
@@ -53,7 +53,7 @@ With exchanges, the loops at a high-level are:
          
             for (k=e*Px; k< (e+1)*Px; ++k): 
             
-               Y\[i,\k\] += W\[i,j\] x X\[j, k\]
+               Y[i, k] += W[i,j] x X[j, k]
                
       exchange(e)  // routine that exchanges blocks of X (within its group)
             
