@@ -78,7 +78,7 @@ Let the LHS block be m x n, and RHS block be n x p.
 
 The total time = O(M x P x 2(N-1)/F  + 4 x m x p x log(N/n)/ B + 4 x Xc x n x P/B)
 Here "Xc" refers to the exchanges required in case the memory is not enough to fit all of RHS matrix X. We split the RHS into groups of "Xc" columns. 
-Each Xc processors working on contiguous columns only have separate copies of Xc. After every reduction, a circular exchange between the Xc processsors produces the next result. 
+The RHS matrix is divided into groups of Xc columns each. After every reduction, a circular exchange between the Xc columns produces the next result. 
 
 ### Algorithm details
 
