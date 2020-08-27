@@ -7,7 +7,7 @@ Initial check-in.
 
 This algorithm (called mosaic) was developed for both square and rectangular matrices, and the blocks too are square or rectangular (leading to a lot of possible scenarios for the optimizer). It was simulated and verified by comparing its results with numpy.matmul. The performance is estimated from cycle counts coming from the simulated processors.
 
-The current distributed block MM algorithms such as [Cannon](https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and [Summa](http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for a certain class of matrices where common "N" dimension is very large.
+Some block MM algorithms such as [Cannon](https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and [Summa](http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for matrices of the type where common "N" dimension is very large.
 
 While the genrealized form of Cannon's original algorithm works with rectangular matrices, Cannon's overhead cost involves shifting two blocks after every synchronized iteration. This pays a heavy penalty in huge matrices with large / large characteristics i.e. large number of processors, and large block sizes (as the matrices are gigantic).
 
