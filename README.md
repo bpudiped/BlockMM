@@ -85,9 +85,6 @@ compute and fitting memory constraints solver.
 
 ![Exchange of Matrix X-blocks](https://github.com/bpudiped/MosaicMM/blob/master/mosiacMM.png)
 
-The current implementation does not work yet on some irregular sized matrices covered by assertions. That issue will be fixed without
-any performance impact (fixing the "residual group" problem i.e. M and P are not divisible by number_of_exchanges aka group_size).
-
 ### Optimizer
 
 The optimizer that determines the partitioning, the block sizing (m, n, p), and the number of exchanges (Xc) is not perfect here. 
