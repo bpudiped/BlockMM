@@ -15,18 +15,6 @@ I hadn't read about Summa when I designed Mosaic, but Mosaic seems to have many 
 
 Yet, there are diffferences too. One of the two matrices (either LHS or RHS) never moves in Mosaic. This property is useful when choosing block sizes (mxn and nxp) so that the stationary matrix may have a large block size. 
 
-Let us take the high-level loops of matrix multiplication:
-
-// Initialize Y to all zeros
-
-   for (j=0; j<N; ++j):
-   
-      for (i=0; i<M; ++i):
-      
-         for (k=0; k<P; ++k):
-         
-            Y[i,k] += W[i,j] x X[j, k]
-
 There are also two other key ideas in the algorithm:
 
 1. Based on the memory available in the processor and number of processors, matrix is partitioned into right-size rectangular blocks for LHS and RHS. 
