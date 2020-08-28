@@ -103,9 +103,11 @@ The current abstraction of v100 is a bit crude. It does not model tensor core (4
 But it provides a fairly good estimation if the tensor core performance can be drilled down into an "efficiency" (from 0 to 1) over the 64 FMACs
 where the efficiency approximates the time lost in setting up the state and other artifacts not modeled.
 
-The other option is hpc1024 is a more freewheeling approximation of an all2all topology of interconnected CPUs with low-bandwidth interconnect (like 100GbE). 
+The other option is hpc1024 - a more freewheeling approximation of an all2all topology of CPUs with low-bandwidth interconnects (like 100GbE). 
 No variable delays, no queueing modeling. It is an estimation on an entirely synchronized execution with no other traffic, and a lot depends on getting the
 efficiency factor right so it approximates all other artifacts.
+
+For any other configuration, just edit the setConfig routine.
 
 The bandwidth, frequency, and fmacs (width of the simd or systolic array) can be specified. An fmac performs a multiply and an add. So, in a reduction, 
 the multiply is unused.
