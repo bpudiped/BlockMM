@@ -5,7 +5,7 @@ Initial check-in.
 
 ###  Overview
 
-This algorithm (called mosaic) was developed for both square and rectangular matrices, and the blocks too are square or rectangular (leading to a lot of possible scenarios for the optimizer). It was simulated and verified by comparing its results with numpy.matmul. The performance is estimated from cycle counts coming from the simulated processors.
+This algorithm (called mosaic) is targeted for a special class of square and rectangular matrices more often seen in large NLP problems. The blocks too are square or rectangular (leading to a lot of possible scenarios for the optimizer). It is simulated and verified by comparing its results with numpy.matmul. The performance is estimated from cycle counts coming from the simulated processors.
 
 Some block MM algorithms such as [Cannon](https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and [Summa](http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for matrices of the type where common "N" dimension is very large.
 
@@ -103,18 +103,24 @@ any performance impact (fixing the "residual group" problem i.e. M and P are not
 ### Optimizer
 
 The optimizer that determines the partitioning, the block sizing (m, n, p), and the number of exchanges (Xc) is not perfect here. 
-For instance, for 2048x2048 square MM, it only engages 512 processors out of 800 possible processors. 
-
-More work has to be done on optimizer. If the residual group problem is solved, the optimizer naturally improves. But need a better
-solver than the iterative method in here (perhaps, look into scipy).
-
 The ideal optimizer should be a multi-variable constraint solver for m, n, p, Xch such that number of processors and processor memory
-are close to maximum values without going over.
+are close to maximum values without going over limits (maybe using a scipy minimization library).
+
+The current implementation uses an iterative strategy by first getting as close to max processors as it can. 
+Then, if we are still over "per-processor memory limit", it scales back memory by increasing exchanges. 
 
 ### Simulating Processors
 
 The algorithm is run on "simulated" processors using a simple abstraction where a processor can multiply a block with a certain efficiency (80% by default).
 The loss in efficiency is due to memory accesses needed for reloading or setting up the SIMD or systolic array. 
+
+The current abstraction of v100 is a bit crude. It does not model tensor core (4x4x4 systolic array) nor it does the mem subsystem or interconnect. 
+But it provides a fairly good estimation if the tensor core performance can be drilled down into an "efficiency" (from 0 to 1) over the 64 FMACs
+where the efficiency approximates the time lost in setting up the state and other artifacts not modeled.
+
+The other option is hpc1024 is a more freewheeling approximation of an all2all topology of interconnected CPUs with low-bandwidth interconnect (like 100GbE). 
+No variable delays, no queueing modeling. It is an estimation on an entirely synchronized execution with no other traffic, and a lot depends on getting the
+efficiency factor right so it approximates all other artifacts.
 
 The bandwidth, frequency, and fmacs (width of the simd or systolic array) can be specified. An fmac performs a multiply and an add. So, in a reduction, 
 the multiply is unused.
