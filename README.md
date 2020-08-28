@@ -87,7 +87,7 @@ So each processor has infinite memory and gets an mxn block (from matrix W) and 
 There is infinite memory, so blocks are big enough for no exchanges and small enough to occupy all processors.
 All processors compute their results in the first step. The second step is the reduction across the N-dimension.
 
-![Reduction by Recursive Halving](https://github.com/bpudiped/MosaicMM/blob/master/mosiacMM1.png)
+![Reduction in log-N steps](https://github.com/bpudiped/MosaicMM/blob/master/mosiacMM2.png)
 
 In the second figure, there isn't enough memory to split the matrix to produce all the results in one compute iteration.
 The second matrix is split up into "exchange groups." A processor group holds contiguous columns of an exchange group. 
