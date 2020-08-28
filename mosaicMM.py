@@ -1,10 +1,11 @@
 # Mosaic - Block Matrix-Multiplication (simulated over a cluster or an array-of-processors arch)
 # The HW details are number of processors (or tiles or tensor cores), number of Fmacs, bandwidth, frequency.
-# Then the MM is partitioned over the the processors using a new algorithm (check README.md)
+# The MM is partitioned over the the processors using a new algorithm (check README.md)
 
-import matplotlib.pyplot as plt
+import threading 
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 #import scipy as sp
 #from scipy.optimize import minimize
 
@@ -120,10 +121,16 @@ def partition(M, N, P, MaxProcs, MaxProcMem):
 
     # Pad Mg until it is divisible by Xc
     Mg1 = Mg # Mg1 is actual value, Mg is padded value
+
     while (Mg % Xc):
         Mg += 1
         if (Mg*Ng*Pg > MaxProcs):
             break
+
+    # if this is over the limit, need to have reserved procs or go back to increasing "m"
+
+    assert(M % Mg1 == 0), "Error, M is not divisible by Mg1"
+    assert (N % Ng == 0), "Error, N not divisible by n"
 
     m = int(M/Mg1)
     n = int(N/Ng)
@@ -158,15 +165,13 @@ def reduce(t, i, l, m, p, opsize, bw, Fmacs):
 
     return cyc
 
-def exchange(t, Mg, Ng, Pg, Xc, tmp, n, p, bw):
+def exchange(t, Mb, Me, Ng, Pg, Xc, tmp, n, p, bw):
     ## Exchange code between procs in exchange group, returns cost (in cycle counts)
     
     cyc_xch = math.ceil(2*n*p/bw)
 
-    assert(Mg % Xc == 0), "Error: Mg is not divisible by Xc"
-
     for k in range (Pg):  # affine
-        for i1 in range(0, Mg, Xc):    # affine   
+        for i1 in range(Mb, Me, Xc):    # affine   
             for i2 in range(Xc):
                 i3 = (i1+i2)*Pg + k
                 i4 = (i1+i2+1)*Pg + k
@@ -181,26 +186,19 @@ def exchange(t, Mg, Ng, Pg, Xc, tmp, n, p, bw):
 
     return cyc_xch
 
-def alignedMM(W, X, Y, P, Mg1, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff):
+def alignedMM(tid, ccmp, cred, cxch, tile, tmp0, W, X, Y, P, Mg1, Mb, Me, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff):
     #Matrix mutiplication where Mg must be aligned i.e Mg % Xc == 0
     #Mg1 is actual number of blocks in M-dimension
     #This routine can be also be used multi-threaded speedup (TBD)
-    
-    print("\tMg (Groups-x): ", Mg, "; Ng (Reduces): ", Ng, "; Pg (Groups-y) = ", Pg, "; Xc (Exchanges): ", Xc)
 
-    # Initialize Procs - perhaps, make this 1-Dimensional in C-version
-    tile = [[Proc(m,n,p,Fmacs,eff) for j in range(Ng)] for i in range(Mg*Pg)]
-    # a temporary tile used for simulating exchange 
-    tmp0 = [Proc(m,n,p,Fmacs,eff) for j in range(Ng)]
-
-    for i in range (Mg):  
+    for i in range (Mb, Me):  
         for k in range(Pg): # for every "output" tile in [Mg, Pg] 
             i1 = i*Pg + k
             k1 = k*Xc + (i%Xc) 
             for j in range(Ng): # initialize W and X for hidden depth of Ng tiles
+                tile[i1][j].x = X[j*n:(j+1)*n, k1*p:(k1+1)*p]
                 if (i < Mg1):
                     tile[i1][j].w = W[i*m:(i+1)*m, j*n:(j+1)*n]
-                tile[i1][j].x = X[j*n:(j+1)*n, k1*p:(k1+1)*p]
 
     # Performance Counters for compute, reduce, and exchange
     cyc_cmp = 0
@@ -209,11 +207,10 @@ def alignedMM(W, X, Y, P, Mg1, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff):
 
     ### Main Matrix multiplication loop
     for ex in range (Xc):  # not affine (serialized)
-        print("Now in Exchange loop: ", ex)
-        for i in range(Mg): # affine
+        #print("Now in Exchange loop: ", ex)
+        for i in range(Mb, Me): # affine
             for k in range(Pg):   # affine
                 i1 = i*Pg + k
-                # multiply
                 for j in range(Ng):
                     cyc_cmp1 = tile[i1][j].ndot()
 
@@ -222,10 +219,11 @@ def alignedMM(W, X, Y, P, Mg1, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff):
                 if (i < Mg1):
                     k1 = k*Xc + (i+ex) % Xc
                     if (k1*p < P):
-                        Y[i*m:(i+1)*m, k1*p:(k1+1)*p] = tile[i1][0].s               
-
+                        Y[i*m:(i+1)*m, k1*p:(k1+1)*p] = tile[i1][0].s
+                        # if (np.count_nonzero(tile[i1][0].s) == 0):
+                        #     print("Zero blocks: i is ", i, "; k is ", k, "; ex is ", ex, "k1 is ", k1, "k1*p is ", k1*p)                  
         if (ex < (Xc-1)):
-            cyc_xch1 = exchange(tile, Mg, Ng, Pg, Xc, tmp0, n, p, bw)
+            cyc_xch1 = exchange(tile, Mb, Me, Ng, Pg, Xc, tmp0, n, p, bw)
         else:
             cyc_xch1 = 0
 
@@ -233,21 +231,26 @@ def alignedMM(W, X, Y, P, Mg1, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff):
         cyc_red += cyc_red1
         cyc_xch += cyc_xch1
 
-    del tile      
-    del tmp0
+    ccmp[tid] = cyc_cmp
+    cred[tid] = cyc_red
+    cxch[tid] = cyc_xch
 
-    return cyc_cmp, cyc_red, cyc_xch
+    return 
 
-def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff):
+def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff, mt):
     ## Main matmult routine, returns active processors, active memory, and respective cycle counts   
   
+
     # partition (To be enhanced: not the most optimized way yet)
     # Note: Mg1 are number of non-zero block rows while Mg has zero-padded rows to align at the end
     Mg1, Mg, Ng, Pg, Xc, m, n, p, nProcs, ProcMem = partition(M, N, P, MaxProcs, MaxProcMem)
 
+
     print("\tM is ", M, "; N is ", N,"; P is ", P)
     print("\tNumber of Active Processors: ", nProcs, "; Active Memory-per-Proc is ", ProcMem, " KB")
+    print("\tMg (Groups-x): ", Mg, "; Ng (Reduces): ", Ng, "; Pg (Groups-y) = ", Pg, "; Xc (Exchanges): ", Xc)
     print("\tm is ", m, "; n is ", n,"; p is ", p)
+    #print("\tMax threads: ", mt)
 
     # bunch of assertions to make sure we are fine
     assert(nProcs <= MaxProcs), "Error: nProcs are over MaxProcs!"
@@ -256,7 +259,55 @@ def matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, bw, Fmacs, eff):
     #assert (P == Pg*Xc*p), "Dimension P is incorrect"
     assert ((Mg != 0) and (Ng != 0) and (Pg != 0)), "Mg/Ng/Pg has a zero value"
 
-    cyc_cmp, cyc_red, cyc_xch = alignedMM(W, X, Y, P, Mg1, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff)
+    # Initialize Procs - perhaps, make this 1-Dimensional in C-version
+    tile = [[Proc(m,n,p,Fmacs,eff) for j in range(Ng)] for i in range(Mg*Pg)]
+    # a temporary tile used for simulating exchange 
+    tmp0 = [Proc(m,n,p,Fmacs,eff) for j in range(Ng)]
+
+    # execution multi-threading partitions
+    Mgt = Xc* int (Mg/mt/Xc)
+
+    while (Mgt == 0):
+        if (mt == 1):
+            break
+        mt -= 1
+        Mgt = Xc* int (Mg/mt/Xc)
+
+    ccmp = [0] * mt
+    cred = [0] * mt
+    cxch = [0] * mt
+    t = []
+
+    if (mt > 1):
+        print("Number of Executing threads is ", mt)
+        for i in range(mt):
+            Mb = i*Mgt
+            if (i < (mt-1)):
+                Me = (i+1)*Mgt
+            else:
+                Me = Mg
+            #print("starting thread ", i, " for Mg ", Mb, " to Mg ", Me)
+            t1 = threading.Thread(target=alignedMM, args=(i, ccmp, cred, cxch, tile, tmp0, W, X, Y, P, Mg1, Mb, Me, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff,))
+            t.append(t1)
+            t1.start()
+
+        for i in range(mt):
+            t[i].join()
+            #print("ending thread ", i)
+    else:
+        alignedMM(0, ccmp, cred, cxch, tile, tmp0, W, X, Y, P, Mg1, 0, Mg, Mg, Ng, Pg, Xc, m, n, p, bw, Fmacs, eff)
+
+    del tile      
+    del tmp0
+
+    cmax = 0
+    for i in range(mt):
+        ci = ccmp[i] + cred[i] + cxch[i]
+        if (ci > cmax):
+            ci = cmax
+            cyc_cmp = ccmp[i]
+            cyc_red = cred[i]
+            cyc_xch = cxch[i]
 
     return nProcs, ProcMem, cyc_cmp, cyc_red, cyc_xch
 
@@ -273,18 +324,30 @@ def setConfig(Proc):   # choose chip configuration to run sim
     return chipCfg
 
 def main():
+
     cfg = "v100"
-    M = 2688
-    N = 2688
-    P = 2688
+    # M = 2688
+    # N = 2688
+    # P = 2688
+    
+    M = 1024
+    N = 2048
+    P = 1024
 
     verify = False
     sweep  = False
+    mt = 1
 
     #parse Options
     i = 1
     while (i < len(sys.argv)):
-        if (sys.argv[i] == "-v"): verify = True
+        if (sys.argv[i] == "-v"): 
+            verify = True
+        elif (sys.argv[i] == "-mt"): 
+            i = i + 1
+            assert(len(sys.argv) > i), "Error! Need number of threads"
+            mt = int(sys.argv[i])
+            assert(mt > 0), "Error! mt should be 1 or above"
         elif (sys.argv[i] == "-c"): 
             i = i + 1
             assert(len(sys.argv) > i), "Error! Need config - either v100 or hpc1024"
@@ -314,7 +377,7 @@ def main():
             assert(len(sys.argv) > i), "Error! No step value for sweep, try -h for help"
             stepN = int(sys.argv[i])
         else:
-            assert(0), "Error! Invalid Option. Usage: mosaic [-v] [-M dimenM] [-N dimenN] [-P dimenP] [-s lowN highN step]"
+            assert(0), "Error! Invalid Option. Usage: mosaic [-mt num_threads] [-c [v100 | hpc1024]] [-M dimenM] [-N dimenN] [-P dimenP] [-s lowN highN step]"
         i = i + 1
 
     [MaxProcs, MaxProcMem, BW, Fmacs, freq, eff] = setConfig(cfg)
@@ -379,6 +442,7 @@ def main():
         ax2.bar(y_pos, cycredlist, width=0.2, color='g', align='ceNger')
         ax2.bar(y_pos+0.2, cycxchlist, width=0.2, color='r', align='ceNger')
 
+
         plt.figure(3)
         colors = {'Procs':'blue', 'ProcMemKB':'red'}         
         ax3 = plt.subplot(111)
@@ -406,7 +470,8 @@ def main():
 
         plt.show()
 
-    else:       
+    else:
+        
         W = np.random.randint(10, size=(M, N)) 
         X = np.random.randint(10, size=(N, P))
         Y = np.zeros((M, P)) # actual W*X
@@ -420,7 +485,7 @@ def main():
         #current_time = now.strftime("%H:%M:%S")
         #print("startint mosaic MM at time: ", current_time)
                                                             
-        nProcs, memkb, cyc_cmp, cyc_red, cyc_xch = matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, BW, Fmacs, eff)
+        nProcs, memkb, cyc_cmp, cyc_red, cyc_xch = matmult(W, X, Y, M, N, P, MaxProcs, MaxProcMem, BW, Fmacs, eff, mt)
 
         cycles = cyc_cmp + cyc_red + cyc_xch
 
@@ -436,13 +501,15 @@ def main():
 
         print("Effective TFLOPS at freq ",  freq, "GHz: ", tflops)
         print("Maximum TFLOPs at freq ", freq, "GHz: ", maxtflops)
+
         endT = time.time()
+
         wallT = endT - startT
+        print("Wall clock time for Mosaic MM : ", wallT, " seconds")
 
         Y = Y.astype(int)
 
         if (verify):
-            print("Wall clock time for Mosaic MM : ", wallT, " seconds")
             E = np.zeros((M, P)) # actual W*X
             now = dt.datetime.now()
             current_time = now.strftime("%H:%M:%S")
@@ -464,7 +531,6 @@ def main():
                 print("Matrix E is ")
                 print(E)
                 print("Actual Y is different from Expected Y\n")
-
 
 if __name__== "__main__":
   main()
