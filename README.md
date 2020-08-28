@@ -136,7 +136,7 @@ TBD. The same appartus will be used to run Cannon's and probably other algorithm
 
 ### Sample output
 
-![2688-dimension square matrix multiplication](https://github.com/bpudiped/MosaicMM/blob/master/mosaicLog1.PNG)
+![2688-dimension square matrix multiplication](https://github.com/bpudiped/MosaicMM/blob/master/mosaicLog2.PNG)
 
 
 
