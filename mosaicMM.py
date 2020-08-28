@@ -513,13 +513,13 @@ def main():
             E = np.zeros((M, P)) # actual W*X
             now = dt.datetime.now()
             current_time = now.strftime("%H:%M:%S")
-            print("Startint numpy MM at time ", current_time, " ...")
+            print("Starting numpy MM at time ", current_time, " ...")
             startT = time.time()
             E = np.matmul(W, X)  # expected W*X
             endT = time.time()
             now = dt.datetime.now()
             current_time = now.strftime("%H:%M:%S")
-            print("Numpy MM done at time: ", current_time)
+            #print("Numpy MM done at time: ", current_time)
             wallT = endT - startT
             print("Wall clock time for Numpy MM : ", wallT, " seconds")
             
