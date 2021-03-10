@@ -9,7 +9,7 @@ This algorithm (called mosaic) is targeted for a special class of square and rec
 
 Some block MM algorithms such as [Cannon](https://iq.opengenus.org/cannon-algorithm-distributed-matrix-multiplication/) and [Summa](http://www.netlib.org/lapack/lawnspdf/lawn96.pdf) are not optimized for processor memory constraints or data movement for matrices of the type where common "N" dimension is very large.
 
-While the genrealized form of Cannon's original algorithm works with rectangular matrices, Cannon's overhead cost involves shifting two blocks after every synchronized iteration. This pays a heavy penalty in huge matrices with large / large characteristics i.e. large number of processors, and large block sizes (as the matrices are gigantic).
+While the generalized form of Cannon's original algorithm works with rectangular matrices, Cannon's overhead cost involves shifting two blocks after every synchronized iteration. This pays a heavy penalty in huge matrices with large / large characteristics i.e. large number of processors, and large block sizes (as the matrices are gigantic).
 
 I hadn't read about Summa when I designed Mosaic, but Mosaic seems to have many things in common with Summa (a high-level overview of Summa is [here](http://cseweb.ucsd.edu/classes/fa12/cse260-b/Lectures/Lec13.pdf)) 
 
